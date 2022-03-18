@@ -66,22 +66,28 @@ public class CurrentAffairs {
     }
 
     private static List<URL> collectUpdateURLs() {
+        Set<String> alreadySeenUrls = new HashSet<>();
         List<URL> updateUrls = new ArrayList<>();
 
         for (ModContainer mod : FabricLoader.getInstance().getAllMods()) {
             CustomValue customValue = mod.getMetadata().getCustomValue("current-affairs");
             if (customValue != null && customValue.getType() == CustomValue.CvType.STRING) {
+                String urlStr = customValue.getAsString();
+                if (alreadySeenUrls.contains(urlStr)) {
+                    continue;
+                }
                 URL url;
                 try {
-                    url = new URL(customValue.getAsString());
+                    url = new URL(urlStr);
                 } catch (MalformedURLException e) {
-                    LOGGER.warn("Mod {} has invalid current-affairs URL: {}", mod.getMetadata().getId(), customValue.getAsString());
+                    LOGGER.warn("Mod {} has invalid current-affairs URL: {}", mod.getMetadata().getId(), urlStr);
                     continue;
                 }
                 if (!"https".equals(url.getProtocol())) {
                     LOGGER.warn("Mod {} tried to add a current-affairs URL with an invalid protocol {}", mod.getMetadata().getId(), url.getProtocol());
                     continue;
                 }
+                alreadySeenUrls.add(urlStr);
                 updateUrls.add(url);
             }
         }
