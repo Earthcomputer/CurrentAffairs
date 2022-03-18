@@ -4,6 +4,7 @@ import net.minecraft.text.ClickEvent;
 import net.minecraft.text.LiteralText;
 import net.minecraft.util.Formatting;
 
+import java.util.Date;
 import java.util.UUID;
 
 public class Test {
@@ -12,7 +13,7 @@ public class Test {
                 UUID.randomUUID(),
                 new LiteralText("Help the Ukrainians ").append(new LiteralText("here").styled(style -> style.withUnderline(true).withColor(Formatting.BLUE).withClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, "https://donate.redcross.org.uk/appeal/ukraine-crisis-appeal")))),
                 null,
-                null,
+                new Date(),
                 null
         )));
     }

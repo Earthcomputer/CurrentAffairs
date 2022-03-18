@@ -6,6 +6,7 @@ import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParseException;
+import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 import com.google.gson.reflect.TypeToken;
@@ -14,6 +15,7 @@ import net.fabricmc.loader.api.ModContainer;
 import net.fabricmc.loader.api.metadata.CustomValue;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.text.Text;
+import net.minecraft.util.JsonHelper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
@@ -31,6 +33,10 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -45,6 +51,7 @@ public class CurrentAffairs {
     private static final Logger LOGGER = LogManager.getLogger();
     private static final Gson GSON = new GsonBuilder()
             .registerTypeAdapter(Text.class, new TextSerializer())
+            .registerTypeAdapter(Date.class, new DateSerializer())
             .setPrettyPrinting()
             .disableHtmlEscaping()
             .create();
@@ -227,5 +234,22 @@ class TextSerializer implements JsonSerializer<Text>, JsonDeserializer<Text> {
     @Override
     public JsonElement serialize(Text src, Type typeOfSrc, JsonSerializationContext context) {
         return Text.Serializer.toJsonTree(src);
+    }
+}
+
+class DateSerializer implements JsonSerializer<Date>, JsonDeserializer<Date> {
+    @Override
+    public Date deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+        String isoDate = JsonHelper.asString(json, "date");
+        try {
+            return Date.from(Instant.from(DateTimeFormatter.ISO_OFFSET_DATE_TIME.parse(isoDate)));
+        } catch (DateTimeParseException e) {
+            throw new JsonParseException(e);
+        }
+    }
+
+    @Override
+    public JsonElement serialize(Date src, Type typeOfSrc, JsonSerializationContext context) {
+        return new JsonPrimitive(DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(src.toInstant().atZone(ZoneId.systemDefault())));
     }
 }
