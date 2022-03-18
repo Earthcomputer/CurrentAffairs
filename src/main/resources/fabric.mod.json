@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "id": "currentaffairs",
+  "version": "${version}",
+  "name": "Current Affairs",
+  "description": "Library to display messages about current affairs on startup",
+  "authors": [
+    "Earthcomputer"
+  ],
+  "contact": {
+    "website": "https://earthcomputer.net",
+    "repo": "https://github.com/Earthcomputer/CurrentAffairs"
+  },
+  "license": "MIT",
+  "environment": "client",
+  "mixins": [
+    "currentaffairs.mixins.json"
+  ],
+  "custom": {
+    "modmenu": {
+      "badges": ["library"]
+    }
+  }
+}
