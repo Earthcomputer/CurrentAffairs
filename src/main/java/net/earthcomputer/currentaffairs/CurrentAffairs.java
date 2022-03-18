@@ -2,8 +2,12 @@ package net.earthcomputer.currentaffairs;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonParseException;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
 import com.google.gson.reflect.TypeToken;
 import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.loader.api.ModContainer;
@@ -19,6 +23,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.Reader;
+import java.lang.reflect.Type;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.UnknownHostException;
@@ -39,9 +44,10 @@ import java.util.stream.Collectors;
 public class CurrentAffairs {
     private static final Logger LOGGER = LogManager.getLogger();
     private static final Gson GSON = new GsonBuilder()
-            .registerTypeAdapter(Text.class, (JsonDeserializer<Text>) (json, typeOfT, context) -> Text.Serializer.fromJson(json))
+            .registerTypeAdapter(Text.class, new TextSerializer())
+            .setPrettyPrinting()
+            .disableHtmlEscaping()
             .create();
-    private static final Path configFile = FabricLoader.getInstance().getConfigDir().resolve("current-affairs").resolve("seen-messages.txt");
 
     private static boolean hasApplied = false;
 
@@ -51,8 +57,10 @@ public class CurrentAffairs {
         }
         hasApplied = true;
 
+        Path configFile = FabricLoader.getInstance().getConfigDir().resolve("current-affairs").resolve("seen-messages.txt");
+
         List<URL> updateUrls = collectUpdateURLs();
-        Set<UUID> seenMessages = getSeenMessages();
+        Set<UUID> seenMessages = getSeenMessages(configFile);
         CurrentAffairsInfo info = getCurrentAffairsInfo(updateUrls, seenMessages);
         if (info == null) {
             return oldScreen;
@@ -60,7 +68,7 @@ public class CurrentAffairs {
 
         seenMessages = new HashSet<>(seenMessages); // ensure it's mutable
         seenMessages.add(info.uuid);
-        saveSeenMessages(seenMessages);
+        saveSeenMessages(seenMessages, configFile);
 
         return new CurrentAffairsScreen(oldScreen, info.message);
     }
@@ -95,7 +103,7 @@ public class CurrentAffairs {
         return updateUrls;
     }
 
-    private static Set<UUID> getSeenMessages() {
+    private static Set<UUID> getSeenMessages(Path configFile) {
         try (BufferedReader reader = Files.newBufferedReader(configFile)) {
             return reader.lines().map(String::trim).filter(str -> !str.isEmpty()).map(UUID::fromString).collect(Collectors.toSet());
         } catch (NoSuchFileException e) {
@@ -108,7 +116,7 @@ public class CurrentAffairs {
         }
     }
 
-    private static void saveSeenMessages(Set<UUID> seenMessages) {
+    private static void saveSeenMessages(Set<UUID> seenMessages, Path configFile) {
         try {
             Files.createDirectories(configFile.getParent());
         } catch (IOException e) {
@@ -199,5 +207,25 @@ public class CurrentAffairs {
         }
 
         return null;
+    }
+
+    public static JsonElement toJsonTree(CurrentAffairsInfo info) {
+        return GSON.toJsonTree(info);
+    }
+
+    public static String toJson(CurrentAffairsInfo info) {
+        return GSON.toJson(info);
+    }
+}
+
+class TextSerializer implements JsonSerializer<Text>, JsonDeserializer<Text> {
+    @Override
+    public Text deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+        return Text.Serializer.fromJson(json);
+    }
+
+    @Override
+    public JsonElement serialize(Text src, Type typeOfSrc, JsonSerializationContext context) {
+        return Text.Serializer.toJsonTree(src);
     }
 }
